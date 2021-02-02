@@ -36,5 +36,20 @@ while True:
         json.dump(items, file, indent=4)
         file.close()
 
+    if option == 3:
+        print("Search by "
+              + "1. url"
+              + "2. mail id")
+        choice = int(input())
+        if choice == 1:
+            url = input()
+            file = open("passwords.json", "r")
+            items = json.load(file)
+            for item in items:
+                if item['website_name'].lower().strip().__contains__(url.lower().strip()):
+                    print("URL is : ", item['website_name'])
+                    print("mail id is : ", item['mail_id'])
+                    print("Password is : ", item['pass_str'])
+
     if option == 4:
         exit(1)
