@@ -17,7 +17,7 @@ while True:
         while True:
             item['pass_str'] = generator(pass_len)
             print("Generated password is ", item['pass_str'])
-            is_ok = int(input("If OK, press 1 else if you want to generate another press 0"))
+            is_ok = int(input("If OK, press 1 else if you want to generate another press 0\n Option : "))
             if is_ok == 1:
                 break
 
@@ -38,9 +38,9 @@ while True:
 
     if option == 3:
         print("Search by "
-              + "1. url"
-              + "2. mail id")
-        choice = int(input())
+              + "\n1. url"
+              + "\n2. mail id")
+        choice = int(input("Option : "))
         if choice == 1:
             url = input()
             file = open("passwords.json", "r")
