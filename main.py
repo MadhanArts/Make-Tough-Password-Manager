@@ -45,8 +45,20 @@ while True:
             url = input()
             file = open("passwords.json", "r")
             items = json.load(file)
+            file.close()
             for item in items:
                 if item['website_name'].lower().strip().__contains__(url.lower().strip()):
+                    print("URL is : ", item['website_name'])
+                    print("mail id is : ", item['mail_id'])
+                    print("Password is : ", item['pass_str'])
+
+        elif choice == 2:
+            mail_id = input()
+            file = open("passwords.json", "r")
+            items = json.load(file)
+            file.close()
+            for item in items:
+                if item['mail_id'].lower().strip().__contains__(mail_id.lower().strip()):
                     print("URL is : ", item['website_name'])
                     print("mail id is : ", item['mail_id'])
                     print("Password is : ", item['pass_str'])
