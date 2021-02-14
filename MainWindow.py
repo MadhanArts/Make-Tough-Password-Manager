@@ -1,5 +1,8 @@
+import json
 from tkinter import *
 from GeneratePassword import generate_password
+import pyperclip
+from functools import partial
 
 
 class MakeTough(Tk):
@@ -46,14 +49,20 @@ class MenuFrame(Frame):
         # self.choice_edit_text = Entry(self, width=50, font=("Courier", 12))
         # self.choice_edit_text.pack(pady=10)
 
-        self.enter_button = Button(self, text='Add', width=50, command=self.add_button_clicked)
-        self.enter_button.pack()
+        self.add_button = Button(self, text='Add', width=50, command=self.add_button_clicked)
+        self.add_button.pack()
+
+        self.search_button = Button(self, text='Search', width=50, command=self.search_button_clicked)
+        self.search_button.pack()
 
         # self.message_label = Label(self, text="No option like that sir! Try again")
         # self.message_label.config(font=("Courier", 10))
 
     def add_button_clicked(self):
         self.controller.show_frame("AddPasswordFrame")
+
+    def search_button_clicked(self):
+        self.controller.show_frame("SearchPasswordFrame")
 
 
 class AddPasswordFrame(Frame):
@@ -67,14 +76,17 @@ class AddPasswordFrame(Frame):
         self.website_label.config(font=("Courier", 15, "bold"))
         self.website_label.grid(row=0, column=0, sticky=W)
 
-        self.website_edit_text = Entry(self, width=20, font=("Courier", 12))
+        self.website_text = StringVar()
+        self.website_edit_text = Entry(self, width=20, font=("Courier", 12), textvariable=self.website_text)
         self.website_edit_text.grid(row=0, column=1, sticky=W)
+        self.website_edit_text.focus()
 
         self.email_label = Label(self, text="Email : ", fg="brown")
         self.email_label.config(font=("Courier", 15, "bold"))
         self.email_label.grid(row=1, column=0, sticky=W)
 
-        self.email_edit_text = Entry(self, width=20, font=("Courier", 12))
+        self.email_text = StringVar()
+        self.email_edit_text = Entry(self, width=20, font=("Courier", 12), textvariable=self.email_text)
         self.email_edit_text.grid(row=1, column=1, sticky=W)
 
         self.password_length_label = Label(self, text="Password length : ", fg="brown")
@@ -91,10 +103,10 @@ class AddPasswordFrame(Frame):
 
         self.frame = Frame(self)
         self.frame.grid(row=4, columnspan=2)
-        self.password = StringVar()
-        self.password.trace("w", lambda name, index, mode, password=self.password: self.callback())
+        self.password_text = StringVar()
+        self.password_text.trace("w", lambda name, index, mode, password=self.password_text: self.callback())
         self.generated_password_edit_text = Entry(self.frame, width=30, font=("Courier", 12),
-                                                  textvariable=self.password)
+                                                  textvariable=self.password_text)
         self.generated_password_edit_text.grid(row=0, column=0, sticky=E)
 
         self.copy_password_button = Button(self.frame, text="copy", command=self.copy_password)
@@ -105,9 +117,6 @@ class AddPasswordFrame(Frame):
 
         self.back_button = Button(self, text="Back", command=self.back)
         self.back_button.grid(row=5, column=1, sticky=W)
-
-        # self.report_back_button = Button(self, text="Back", command=controller.go_back)
-        # self.report_back_button.pack()
 
     def back(self):
         self.reset()
@@ -121,18 +130,33 @@ class AddPasswordFrame(Frame):
         self.generated_password_edit_text.insert(0, temp_password)
 
     def add_password(self):
-        pass
+        file = open("passwords.json", "r")
+        items = []
+        # print(file.read())
+        if file.read() != "":
+            file.seek(0)
+            items = json.load(file)
+        file.close()
+
+        file = open("passwords.json", "w")
+        item = {
+            'website_name': self.website_text.get(),
+            'mail_id': self.email_text.get(),
+            'pass_str': self.password_text.get()
+        }
+        items.append(item)
+        print("Items : ", items)
+        json.dump(items, file, indent=4)
+        file.close()
+        self.reset()
 
     def copy_password(self):
-        pass
+        pyperclip.copy(self.password_text.get())
 
     def callback(self):
-        if self.password.get().strip() == "":
+        if self.password_text.get().strip() == "":
             self.copy_password_button.grid_forget()
-            # self.generated_password_edit_text.grid(row=4, columnspan=2)
-
         else:
-            # self.generated_password_edit_text.grid(row=4, column=0)
             self.copy_password_button.grid(row=0, column=1)
 
     def reset(self):
@@ -142,6 +166,7 @@ class AddPasswordFrame(Frame):
         self.password_length_spinbox.delete(0, END)
         self.password_length_spinbox.insert(0, 0)
 
+
 class SearchPasswordFrame(Frame):
 
     def __init__(self, parent, controller):
@@ -150,91 +175,81 @@ class SearchPasswordFrame(Frame):
                        bd=0)
         self.controller = controller
 
-        self.process_coins_frame_title_label = Label(self, text="Process Coins :", fg="brown")
-        self.process_coins_frame_title_label.config(font=("Courier", 15, "bold"))
-        self.process_coins_frame_title_label.pack()
+        self.search_password_frame_title_frame = Frame(self)
+        self.search_password_frame_title_frame.pack()
+        self.search_password_frame_title_label = Label(self.search_password_frame_title_frame, text="Search Password",
+                                                       fg="brown")
+        self.search_password_frame_title_label.config(font=("Courier", 15, "bold"))
+        self.search_password_frame_title_label.grid(row=0)
 
-        self.process_coins_frame_quarter_label = Label(self, text="Enter number of quarters : ", fg="#123333")
-        self.process_coins_frame_quarter_label.config(font=("Courier", 15, "bold"))
-        self.process_coins_frame_quarter_label.pack()
-        self.process_coins_frame_quarter_edit_text = Spinbox(self, width=50, font=("Courier", 12), from_=0, to=100)
-        self.process_coins_frame_quarter_edit_text.pack()
+        self.search_password_frame_search_box_frame = Frame(self)
+        self.search_password_frame_search_box_frame.pack()
+        self.search_text = StringVar()
+        self.search_password_frame_search_edit_text = Entry(self.search_password_frame_search_box_frame, width=30,
+                                                            font=("Courier", 12), textvariable=self.search_text)
+        self.search_password_frame_search_edit_text.grid(row=0, column=0)
 
-        self.process_coins_frame_dimes_label = Label(self, text="Enter number of dimes : ", fg="#123333")
-        self.process_coins_frame_dimes_label.config(font=("Courier", 15, "bold"))
-        self.process_coins_frame_dimes_label.pack()
-        self.process_coins_frame_dimes_edit_text = Spinbox(self, width=50, font=("Courier", 12), from_=0, to=100)
-        self.process_coins_frame_dimes_edit_text.pack()
+        self.search_password_frame_search_by_website_button = Button(self.search_password_frame_search_box_frame,
+                                                                     text="Search by Website",
+                                                                     command=self.search_by_website)
+        self.search_password_frame_search_by_website_button.grid(row=0, column=1)
+        self.search_password_frame_search_by_username_button = Button(self.search_password_frame_search_box_frame,
+                                                                      text="Search by username",
+                                                                      command=self.search_by_username)
+        self.search_password_frame_search_by_username_button.grid(row=0, column=2)
 
-        self.process_coins_frame_nickel_label = Label(self, text="Enter number of nickles : ", fg="#123333")
-        self.process_coins_frame_nickel_label.config(font=("Courier", 15, "bold"))
-        self.process_coins_frame_nickel_label.pack()
-        self.process_coins_frame_nickel_edit_text = Spinbox(self, width=50, font=("Courier", 12), from_=0, to=100)
-        self.process_coins_frame_nickel_edit_text.pack()
+        self.search_password_frame_search_result_list_frame = Frame(self, highlightbackground="green",
+                                                                    highlightcolor="green",
+                                                                    highlightthickness=1, bd=0, width=500, height=400)
+        self.search_password_frame_search_result_list_frame.pack()
 
-        self.process_coins_frame_pennies_label = Label(self, text="Enter number of pennies : ", fg="#123333")
-        self.process_coins_frame_pennies_label.config(font=("Courier", 15, "bold"))
-        self.process_coins_frame_pennies_label.pack()
-        self.process_coins_frame_pennies_edit_text = Spinbox(self, width=50, font=("Courier", 12), from_=0, to=100)
-        self.process_coins_frame_pennies_edit_text.pack()
+    def search_by_website(self):
+        url = self.search_text.get()
+        file = open("passwords.json", "r")
+        items = json.load(file)
+        file.close()
+        # search_result_list = Listbox(self.search_password_frame_search_result_list_frame)
+        print("Search by result")
+        for child in self.search_password_frame_search_result_list_frame.winfo_children():
+            child.destroy()
+        i = 0
+        for item in items:
+            if item['website_name'].lower().strip().__contains__(url.lower().strip()):
+                # print("URL is : ", item['website_name'])
+                # print("mail id is : ", item['mail_id'])
+                # print("Password is : ", item['pass_str'])
 
-        self.process_coins_frame_submit_button = Button(self, text="Submit")
-        self.process_coins_frame_submit_button.pack()
-        self.process_coins_frame_back_button = Button(self, text="Back")
-        self.process_coins_frame_back_button.pack()
+                search_password_frame_search_list_item_frame = Frame(
+                    self.search_password_frame_search_result_list_frame,
+                    highlightbackground="blue",
+                    highlightcolor="blue",
+                    highlightthickness=1, bd=0, width=500
+                    )
+                search_password_frame_search_list_item_frame.pack(padx=10, pady=10, fill="both", expand=True)
+                search_password_frame_search_list_item_frame.grid_rowconfigure(0, weight=1)
+                search_password_frame_search_list_item_frame.grid_columnconfigure(0, weight=1, minsize=300)
+                search_result_website_label = Label(search_password_frame_search_list_item_frame,
+                                                    text=item['website_name'])
+                search_result_website_label.grid(row=0, column=0)
+                search_result_email_label = Label(search_password_frame_search_list_item_frame,
+                                                  text=item['mail_id'])
+                search_result_email_label.grid(row=1, column=0)
+                search_result_show_password_button = Button(search_password_frame_search_list_item_frame,
+                                                            text="Show Password", command=partial(self.change, i))
+                search_result_show_password_button.grid(row=0, column=1)
+                i += 1
 
-        self.process_coins_frame_error = Label(self, text="")
-        self.process_coins_frame_error.pack()
+    def search_by_username(self):
+        pass
 
-    def setup_process_coins(self, machine, drink):
-        self.process_coins_frame_title_label.config(text=f"It cost you ${drink.money} sir\nInsert Coins : ")
-        self.process_coins_frame_submit_button.config(command=lambda: self.process_coins(machine, drink))
-        self.process_coins_frame_back_button.config(command=self.go_back)
+    def show_password(self, i):
+        print("id", i)
 
-    def process_coins(self, machine, drink):
-        quarters = 0
-        dimes = 0
-        nickles = 0
-        pennies = 0
-        try:
-            quarters = int(self.process_coins_frame_quarter_edit_text.get())
-            dimes = int(self.process_coins_frame_dimes_edit_text.get())
-            nickles = int(self.process_coins_frame_nickel_edit_text.get())
-            pennies = int(self.process_coins_frame_pennies_edit_text.get())
-        except ValueError:
-            self.process_coins_frame_error.config(text="Entered wrong value. Try again")
-            self.setup_process_coins(machine, drink)
-            # return False
-
-        total = 0.25 * quarters + 0.1 * dimes + 0.05 * nickles + 0.01 * pennies
-
-        if total < drink.money:
-            self.reset()
-            machine.show_frame("SuccessFrame")
-            machine.frames["SuccessFrame"].label_config("Sorry that's not enough money. Money refunded")
-        elif total == drink.money:
-            machine.add_money(drink.money)
-            machine.make_coffee(drink)
-            self.reset()
-            machine.show_frame("SuccessFrame")
-            machine.frames["SuccessFrame"].label_config(f"Here is your {drink.name}. Enjoy!")
-        else:
-            machine.add_money(drink.money)
-            machine.make_coffee(drink)
-            self.reset()
-            machine.show_frame("SuccessFrame")
-            machine.frames["SuccessFrame"].label_config(
-                "Here is {:.2f} dollars in change\nHere is your {}. Enjoy!".format(total - drink.money, drink.name))
+    def change(self, i):
+        print(i)
 
     def reset(self):
-        self.process_coins_frame_quarter_edit_text.delete(0, END)
-        self.process_coins_frame_quarter_edit_text.insert(0, 0)
-        self.process_coins_frame_dimes_edit_text.delete(0, END)
-        self.process_coins_frame_dimes_edit_text.insert(0, 0)
-        self.process_coins_frame_nickel_edit_text.delete(0, END)
-        self.process_coins_frame_nickel_edit_text.insert(0, 0)
-        self.process_coins_frame_pennies_edit_text.delete(0, END)
-        self.process_coins_frame_pennies_edit_text.insert(0, 0)
+        pass
 
     def go_back(self):
         self.reset()
@@ -257,45 +272,6 @@ class SuccessFrame(Frame):
     def label_config(self, text):
         self.success_frame_label.config(font=("Courier", 15, "bold"), text=text)
 
-
-# con = sqlite3.connect("day14.db")
-# print("Opened database successfully")
-# cursor = con.cursor()
-# try:
-#     cursor.execute("CREATE TABLE COFFEE_MACHINE"
-#                    "("
-#                    + "date DATETIME,"
-#                    + "water INT,"
-#                    + "milk INT,"
-#                    + "coffee INT,"
-#                    + "money INT"
-#                      ");")
-# except Exception as e:
-#     print("Error :", e)
-# else:
-#     print("Table created")
-
-# dataframe = [(datetime.datetime.now(), 3000, 2000, 1000, 0)]
-#
-# try:
-#     cursor.executemany("INSERT INTO COFFEE_MACHINE VALUES (?,?,?,?,?)", dataframe)
-# except Exception as e:
-#     print("Error : ", e)
-# else:
-#     con.commit()
-#     print("Data inserted")
-
-# rows = cursor.execute("SELECT * FROM COFFEE_MACHINE")
-# water = 0
-# milk = 0
-# coffee = 0
-# money = 0
-# for row in rows:
-#     print(row[0], row[1], row[2], row[3])
-#     water = row[1]
-#     milk = row[2]
-#     coffee = row[3]
-#     money = row[4]
 
 my_machine = MakeTough()
 
