@@ -1,4 +1,4 @@
-from GeneratePassword import generator
+from GeneratePassword import generate_password
 import json
 
 while True:
@@ -15,7 +15,7 @@ while True:
         pass_len = int(input("Enter the length of password : "))
         item['pass_str'] = ""
         while True:
-            item['pass_str'] = generator(pass_len)
+            item['pass_str'] = generate_password(pass_len)
             print("Generated password is ", item['pass_str'])
             is_ok = int(input("If OK, press 1 else if you want to generate another press 0\n Option : "))
             if is_ok == 1:

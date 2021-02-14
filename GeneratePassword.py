@@ -2,7 +2,7 @@ import random
 import string
 
 
-def generator(pass_len):
+def generate_password(pass_len):
     password = ''
 
     for x in range(0, 4):
