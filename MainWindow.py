@@ -15,7 +15,7 @@ class MakeTough(Tk):
         container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
-        for F in (MenuFrame, AddPasswordFrame, SearchPasswordFrame, SuccessFrame):
+        for F in (MenuFrame, AddPasswordFrame, SearchPasswordFrame, ShowPasswordFrame):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -31,6 +31,9 @@ class MakeTough(Tk):
     def go_back(self):
         self.show_frame("MenuFrame")
 
+    def set_variable(self, key, password):
+        self.frames["ShowPasswordFrame"].__setattr__(key, password)
+
 
 class MenuFrame(Frame):
 
@@ -43,20 +46,11 @@ class MenuFrame(Frame):
         self.welcome_label.config(font=("Courier", 15, "bold"))
         self.welcome_label.pack()
 
-        # self.menu_label = Label(self, text="What would you like? ([1] espresso/[2] latte/[3] cappuccino)",
-        # fg="#123333") self.menu_label.config(font=("Courier", 15, "bold")) self.menu_label.pack()
-
-        # self.choice_edit_text = Entry(self, width=50, font=("Courier", 12))
-        # self.choice_edit_text.pack(pady=10)
-
         self.add_button = Button(self, text='Add', width=50, command=self.add_button_clicked)
         self.add_button.pack()
 
         self.search_button = Button(self, text='Search', width=50, command=self.search_button_clicked)
         self.search_button.pack()
-
-        # self.message_label = Label(self, text="No option like that sir! Try again")
-        # self.message_label.config(font=("Courier", 10))
 
     def add_button_clicked(self):
         self.controller.show_frame("AddPasswordFrame")
@@ -110,7 +104,6 @@ class AddPasswordFrame(Frame):
         self.generated_password_edit_text.grid(row=0, column=0, sticky=E)
 
         self.copy_password_button = Button(self.frame, text="copy", command=self.copy_password)
-        # self.copy_password_button.grid(row=0, column=1, sticky=W)
 
         self.add_password_button = Button(self, text="Add", command=self.add_password)
         self.add_password_button.grid(row=5, column=0, sticky=E)
@@ -132,7 +125,6 @@ class AddPasswordFrame(Frame):
     def add_password(self):
         file = open("passwords.json", "r")
         items = []
-        # print(file.read())
         if file.read() != "":
             file.seek(0)
             items = json.load(file)
@@ -177,10 +169,13 @@ class SearchPasswordFrame(Frame):
 
         self.search_password_frame_title_frame = Frame(self)
         self.search_password_frame_title_frame.pack()
+        self.search_password_frame_back_button = Button(self.search_password_frame_title_frame, text="back",
+                                                        command=self.go_back)
+        self.search_password_frame_back_button.grid(row=0, column=0)
         self.search_password_frame_title_label = Label(self.search_password_frame_title_frame, text="Search Password",
                                                        fg="brown")
         self.search_password_frame_title_label.config(font=("Courier", 15, "bold"))
-        self.search_password_frame_title_label.grid(row=0)
+        self.search_password_frame_title_label.grid(row=0, column=1)
 
         self.search_password_frame_search_box_frame = Frame(self)
         self.search_password_frame_search_box_frame.pack()
@@ -200,7 +195,7 @@ class SearchPasswordFrame(Frame):
 
         self.search_password_frame_search_result_list_frame = Frame(self, highlightbackground="green",
                                                                     highlightcolor="green",
-                                                                    highlightthickness=1, bd=0, width=500, height=400)
+                                                                    highlightthickness=1, bd=0, width=500)
         self.search_password_frame_search_result_list_frame.pack()
 
     def search_by_website(self):
@@ -208,24 +203,21 @@ class SearchPasswordFrame(Frame):
         file = open("passwords.json", "r")
         items = json.load(file)
         file.close()
-        # search_result_list = Listbox(self.search_password_frame_search_result_list_frame)
         print("Search by result")
         for child in self.search_password_frame_search_result_list_frame.winfo_children():
             child.destroy()
-        i = 0
-        for item in items:
-            if item['website_name'].lower().strip().__contains__(url.lower().strip()):
-                # print("URL is : ", item['website_name'])
-                # print("mail id is : ", item['mail_id'])
-                # print("Password is : ", item['pass_str'])
 
+        searched_result_items = []
+        for item in items:
+            if url.lower().strip() != "" and item['website_name'].lower().strip().__contains__(url.lower().strip()):
+                searched_result_items.append(item)
                 search_password_frame_search_list_item_frame = Frame(
                     self.search_password_frame_search_result_list_frame,
                     highlightbackground="blue",
                     highlightcolor="blue",
                     highlightthickness=1, bd=0, width=500
-                    )
-                search_password_frame_search_list_item_frame.pack(padx=10, pady=10, fill="both", expand=True)
+                )
+                search_password_frame_search_list_item_frame.pack(ipadx=10, ipady=10, fill="both", expand=True)
                 search_password_frame_search_list_item_frame.grid_rowconfigure(0, weight=1)
                 search_password_frame_search_list_item_frame.grid_columnconfigure(0, weight=1, minsize=300)
                 search_result_website_label = Label(search_password_frame_search_list_item_frame,
@@ -235,42 +227,105 @@ class SearchPasswordFrame(Frame):
                                                   text=item['mail_id'])
                 search_result_email_label.grid(row=1, column=0)
                 search_result_show_password_button = Button(search_password_frame_search_list_item_frame,
-                                                            text="Show Password", command=partial(self.change, i))
+                                                            text="Show Password",
+                                                            command=partial(self.show_password, item))
+                search_result_show_password_button.grid(row=0, column=1)
+
+    def search_by_username(self):
+        mail_id = self.search_text.get()
+        file = open("passwords.json", "r")
+        items = json.load(file)
+        file.close()
+        print("Search by result")
+        for child in self.search_password_frame_search_result_list_frame.winfo_children():
+            child.destroy()
+
+        i = 0
+        searched_result_items = []
+        for item in items:
+            if mail_id.lower().strip() != "" and item['mail_id'].lower().strip().__contains__(mail_id.lower().strip()):
+                searched_result_items.append(item)
+                search_password_frame_search_list_item_frame = Frame(
+                    self.search_password_frame_search_result_list_frame,
+                    highlightbackground="blue",
+                    highlightcolor="blue",
+                    highlightthickness=1, bd=0, width=500
+                )
+                search_password_frame_search_list_item_frame.pack(ipadx=10, ipady=10, fill="both", expand=True)
+                search_password_frame_search_list_item_frame.grid_rowconfigure(0, weight=1)
+                search_password_frame_search_list_item_frame.grid_columnconfigure(0, weight=1, minsize=300)
+                search_result_website_label = Label(search_password_frame_search_list_item_frame,
+                                                    text=item['website_name'])
+                search_result_website_label.grid(row=0, column=0)
+                search_result_email_label = Label(search_password_frame_search_list_item_frame,
+                                                  text=item['mail_id'])
+                search_result_email_label.grid(row=1, column=0)
+                search_result_show_password_button = Button(search_password_frame_search_list_item_frame,
+                                                            text="Show Password",
+                                                            command=partial(self.show_password, item))
                 search_result_show_password_button.grid(row=0, column=1)
                 i += 1
 
-    def search_by_username(self):
-        pass
-
-    def show_password(self, i):
-        print("id", i)
-
-    def change(self, i):
-        print(i)
+    def show_password(self, item):
+        print("id: ", item)
+        self.controller.set_variable("pass", item["pass_str"])
+        self.controller.show_frame("ShowPasswordFrame")
 
     def reset(self):
-        pass
+        for child in self.search_password_frame_search_result_list_frame.winfo_children():
+            child.destroy()
+        self.search_password_frame_search_edit_text.delete(0, END)
 
     def go_back(self):
         self.reset()
         self.controller.show_frame("MenuFrame")
 
 
-class SuccessFrame(Frame):
+class ShowPasswordFrame(Frame):
 
     def __init__(self, parent, controller):
         Frame.__init__(self, parent, width=100, height=100, padx=30, pady=20,
                        highlightbackground="blue", highlightcolor="blue", highlightthickness=1,
                        bd=0)
         self.controller = controller
-        self.success_frame_label = Label(self, fg="brown")
-        self.success_frame_label.pack(side="top", fill="x", pady=10)
-        self.success_frame_back_button = Button(self, text="Go to main menu",
-                                                command=lambda: controller.show_frame("MenuFrame"))
-        self.success_frame_back_button.pack()
 
-    def label_config(self, text):
-        self.success_frame_label.config(font=("Courier", 15, "bold"), text=text)
+        self.show_password_frame_show = Button(self, text="show", command=self.show_password)
+        self.show_password_frame_show.pack()
+
+        self.frame = Frame(self)
+        self.frame.pack()
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.password_text = StringVar()
+        self.password_text.trace("w", lambda name, index, mode, password=self.password_text: self.callback())
+        self.show_password_frame_edit_text = Entry(self.frame, width=30, font=("Courier", 12),
+                                                   textvariable=self.password_text)
+        self.show_password_frame_edit_text.grid(row=0, column=0, sticky=E)
+
+        self.copy_password_button = Button(self.frame, text="copy", command=self.copy_password)
+
+        self.show_password_frame_back_button = Button(self, text="back", command=self.go_back)
+        self.show_password_frame_back_button.pack()
+
+    def show_password(self):
+        password = self.__getattribute__("pass")
+        self.show_password_frame_edit_text.delete(0, END)
+        self.show_password_frame_edit_text.insert(0, password)
+
+    def copy_password(self):
+        pyperclip.copy(self.password_text.get())
+
+    def callback(self):
+        if self.password_text.get().strip() == "":
+            self.copy_password_button.grid_forget()
+        else:
+            self.copy_password_button.grid(row=0, column=1)
+
+    def reset(self):
+        self.show_password_frame_edit_text.delete(0, END)
+
+    def go_back(self):
+        self.reset()
+        self.controller.show_frame("SearchPasswordFrame")
 
 
 my_machine = MakeTough()
